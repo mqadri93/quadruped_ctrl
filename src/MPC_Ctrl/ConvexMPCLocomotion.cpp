@@ -147,6 +147,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     world_position_desired[1] = stand_traj[1];
   }
   generate_data();
+  //Sw_St_Xtd_out _gait = generate_data(time, ecat_data, stancevsswing);
   // pick gait
   Gait* gait = &trotting;
   if(robotMode == 0) {

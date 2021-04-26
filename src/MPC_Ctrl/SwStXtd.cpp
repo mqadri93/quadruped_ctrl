@@ -48,11 +48,6 @@ void generate_data() {
     // Tests
     //lesion_leg_xswing[0] = lesion_leg_xswing[0]*2;
     //lesion_legs[0] = true;
-    lesion = 1;
-
-    leg_command_in[0] = 1;
-    leg_command_in[3] = 1;
-
     Sw_St_Xtd_out _gait = Sw_St_Xtd(pFIS_stack,
                                     FFS_stack,
                                     nodes,
