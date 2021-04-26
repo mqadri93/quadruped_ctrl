@@ -1,5 +1,6 @@
 #include "GaitCtrller.h"
 
+
 GaitCtrller::GaitCtrller(double freq, double* PIDParam) {
   for (int i = 0; i < 4; i++) {
     ctrlParam(i) = PIDParam[i];

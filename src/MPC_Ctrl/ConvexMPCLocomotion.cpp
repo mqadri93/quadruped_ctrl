@@ -5,6 +5,8 @@
 #include "Utilities/Timer.h"
 #include "Utilities/Utilities_print.h"
 #include "convexMPC_interface.h"
+#include "MPC_Ctrl/utils.h"
+#include "MPC_Ctrl/SwStXtd.h"
 // #include "../../../../common/FootstepPlanner/GraphSearch.h"
 
 // #include "Gait.h"
@@ -144,7 +146,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     world_position_desired[0] = stand_traj[0];
     world_position_desired[1] = stand_traj[1];
   }
-
+  generate_data();
   // pick gait
   Gait* gait = &trotting;
   if(robotMode == 0) {

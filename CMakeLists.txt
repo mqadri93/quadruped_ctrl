@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(quadruped_ctrl)
+set(CMAKE_BUILD_TYPE "Release")
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 #add_compile_options(-std=c++11)
@@ -9,11 +10,26 @@ set(CMAKE_BUILD_TYPE "Release")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
+#find_package(GMP REQUIRED)
+#include_directories(${GMP_INCLUDE_DIRS})
+
+find_package( LIBIGL REQUIRED )
+include_directories(${LIBIGL_INCLUDE_DIRS})
+
+find_package( CGAL REQUIRED )
+include_directories(${CGAL_INCLUDE_DIRS})
+
+
+#message("GMP ${GMP_INCLUDE_DIRS}")
+#set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${CGAL_LIBRARIES})
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
   message_generation
+  eigen_conversions
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,6 +124,7 @@ catkin_package(
   INCLUDE_DIRS
   LIBRARIES
   CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs
+  DEPENDS CGAL LIBIGL
   #DEPENDS system_lib
 )
 
@@ -147,6 +164,8 @@ add_library(${PROJECT_NAME}
   src/Dynamics/Quadruped.cpp
   src/Dynamics/FloatingBaseModel.cpp
   src/GaitCtrller.cpp
+  src/MPC_Ctrl/utils.cpp
+  src/MPC_Ctrl/SwStXtd.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -154,6 +173,7 @@ target_link_libraries(${PROJECT_NAME}
   JCQP
   qpOASES
   osqp
+  CGAL::CGAL
 )
 
 # add_executable(mainController src/mainController.cpp)
