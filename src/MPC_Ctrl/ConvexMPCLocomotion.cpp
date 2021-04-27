@@ -125,6 +125,12 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   bool omniMode = false;
   // Command Setup
   _SetupCommand(_stateEstimator, gamepadCommand);
+  cout << "=====body velocity=====" << endl;
+  cout << _x_vel_des << endl;
+  cout << "=====time step=====" << endl;
+  cout << dt << endl;
+  cout << "=====Swing times=====" << endl;
+  cout << swingTimes[0] << endl;
 
   gaitNumber = gaitType;  // data.userParameters->cmpc_gait; 步态默认为trot
 
@@ -146,8 +152,92 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     world_position_desired[0] = stand_traj[0];
     world_position_desired[1] = stand_traj[1];
   }
-  generate_data();
+
+  /*
+    define input data to generate_data
+  */ 
+  int NUM_LEGS = 4;
+  std::vector<float> x_fh = {_legController.datas[0].p[0], _legController.datas[1].p[0], 
+                              _legController.datas[2].p[0], _legController.datas[3].p[0]};
+
+  float vx_des = gamepadCommand[0];    
+  float eps = 0.005;
+  vector<bool> leg_command_in(NUM_LEGS, 1); 
+  std::vector<float> x_swingOnset(NUM_LEGS, 0);
+
+  // very simplistic contact estimation  
+  cout << "==== simple contact estimation =====" << endl;  
+  for(int i=0; i < NUM_LEGS; i++){
+    // if foot is above ground
+    cout << _legController.datas[i].p[2] + (seResult.position[2] - eps) << endl;
+    if(_legController.datas[i].p[2] <= -(seResult.position[2] - eps))
+      leg_command_in[i] = 0;
+  }
+
+  // cout << "======= hip1 location =========" << endl;
+  // cout << _quadruped.getHipLocation(0) << endl;
+  // cout << "======= hip2 location =========" << endl;
+  // cout << _quadruped.getHipLocation(1) << endl;
+  // cout << "======= hip3 location =========" << endl;
+  // cout << _quadruped.getHipLocation(2) << endl;
+  // cout << "======= hip4 location =========" << endl;
+  // cout << _quadruped.getHipLocation(3) << endl;
+
+  cout << "======= leg_command_in =========" << endl;
+  cout << leg_command_in[0] << ", " << leg_command_in[1] << ", " <<
+          leg_command_in[2] << ", " << leg_command_in[3] << endl;
+
+  // we need to generate MPC table, i.e., contact states throughout the MPC horizon
+  // define a horizon
+  int h_mpc = 10;
+
+  Sw_St_Xtd_out _gait;
+  _gait = generate_data(x_fh, _stateEstimator.getResult().vBody[0], vx_des, leg_command_in);
+  for(int leg = 0; leg < NUM_LEGS; leg++) {
+    if(_gait.swing_state_flag[leg] == 1)
+      x_swingOnset[leg] = x_fh[leg];
+  }
+
+  int adaptive_mpc_table[h_mpc*NUM_LEGS];
+  for(int i=0; i<NUM_LEGS; i++){
+    adaptive_mpc_table[i] = _gait.leg_command[i];
+  }
+
+  float vb = _stateEstimator.getResult().vBody[0];
+  for(int iter = 1; iter < h_mpc; iter++) {
+    leg_command_in = _gait.leg_command;
+
+    for(int leg = 0; leg < NUM_LEGS; leg++) {
+      if(_gait.leg_command[leg] == 1) {
+        x_fh[leg] = x_fh[leg] - vb*dt;
+      } else {
+        x_fh[leg] = x_swingOnset[leg] + (_gait.x_td_out[leg]-x_swingOnset[leg])*swingTimeRemaining[leg];
+        if(x_fh[leg] >= _gait.x_td_out[leg])
+          leg_command_in[leg] = 1;
+      }
+    }
+    _gait = generate_data(x_fh, vb, vx_des, leg_command_in);
+    for(int leg = 0; leg < NUM_LEGS; leg++) {
+      if(_gait.swing_state_flag[leg] == 1)
+        x_swingOnset[leg] = x_fh[leg];
+
+      adaptive_mpc_table[iter*NUM_LEGS + leg] = _gait.leg_command[leg];
+    }
+
+  }
+
+  cout << "+++++++++++++++++++++++" << endl;
+  cout << "=======================" << endl;
+  // cout << "=====leg_position=====" << endl;
+  // cout << _legController.datas[0].p << endl;
+
+  // cout << "=====leg_command=====" << endl;
+  // cout << _stateEstimator.getResult().contactEstimate[0] << endl;
   //Sw_St_Xtd_out _gait = generate_data(time, ecat_data, stancevsswing);
+
+
+
+
   // pick gait
   Gait* gait = &trotting;
   if(robotMode == 0) {
@@ -250,7 +340,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                                       v_des_robot;  //世界坐标系下的期望线速度
   Vec3<float> v_robot = seResult.vWorld;  //世界坐标系下的机器人实际速度
 
-  // Integral-esque pitche and roll compensation
+  // Integral-esque pitch and roll compensation
   // 积分达到补偿值*******************************
   // 为了保持在运动过程中身体与地面平行
   if (fabs(v_robot[0]) > .2)  // avoid dividing by zero

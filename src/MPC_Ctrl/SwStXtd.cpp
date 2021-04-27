@@ -3,7 +3,7 @@
 // static double t_liftoff = 0;
 
 
-void generate_data() {
+Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vector<bool> leg_command_in) {
     std::map<int, FA> FFS_stack;
     std::map<std::string, FIA> pFIS_stack;
 
@@ -25,19 +25,19 @@ void generate_data() {
     load_data_FIS_backward(&pFIS_stack);
 
     
-    vector<float> ecat_data = {0.1, -0.16, -0.1, 0.1};
+    // vector<float> ecat_data = {0.1, -0.16, -0.1, 0.1};
     float marginalUtility_threshold = 0.6; 
     float x_swing = -0.15;
     float x_td_nom = 0.15;
     int NUM_LEGS = 4;
     
-    float vb = 0.6;
-    float vx_des = 0.6;
+    // float vb = 0.6;
+    // float vx_des = 0.6;
     float internode_dx = mean(diff(nodes));
 
     int trouble = 0;
     int t = 1;
-    vector<bool> leg_command_in(NUM_LEGS, 0);
+    // vector<bool> leg_command_in(NUM_LEGS, 0);
     int lesion = 0;
 
     vector<float> x_td_old(NUM_LEGS, x_td_nom);
@@ -75,6 +75,8 @@ void generate_data() {
     print_vector(_gait.swing_state_flag);
     cout << "=====x_td_out=====" << endl;
     print_vector(_gait.x_td_out);
+
+    return _gait;
 }
 
 Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
@@ -164,16 +166,17 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 	pFIS_single_for_MU.push_back({{0,0}});
 	vector<float> entry2 = {0,0};
 	vector<float> pFIS_interNode ={0,0};
-	vector<int> check_leg_in_stance(NUM_LEGS, 0);
+	vector<int> check_leg_in_stance;//(NUM_LEGS, 0);
 	vector<float> x_fh = ecat_data;
 	vector<bool> leg_state = leg_command_in;
-	check_leg_in_stance[2] = 10;
+	// check_leg_in_stance[2] = 10;
 		
 	int N_in_contact = 0;
 	for(size_t leg=1; leg<=NUM_LEGS; leg++) {
 		if(leg_state[leg-1] && x_fh[leg-1] > nodes[0] + wkspace_margin) {
 			N_in_contact = N_in_contact+1;
-			check_leg_in_stance[N_in_contact-1] = leg-1;
+			// check_leg_in_stance[N_in_contact-1] = leg-1;
+			check_leg_in_stance.push_back(leg-1);
 		}
 	}
 	vector<float> marginalUtility(NUM_LEGS, 0);
@@ -290,9 +293,11 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 		vector<vector<double>> tmp;
 		vector<vector<double>> entry2;
 		for(size_t i=0; i<check_leg_in_stance.size(); i++) {
-			if(i==legs) continue;
+			if(check_leg_in_stance[i]==legs) continue;
 			tmp_ind.push_back(check_leg_in_stance[i]);
 		}
+		cout << "==== tmp_ind size ======" << endl;
+		cout << tmp_ind.size() << endl;
 		if(tmp_ind.size() > 0) {
 			if(tmp_ind[0] == 0) {
 				tmp = pFIS_single_for_MU[0];
@@ -328,6 +333,7 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 					}
 					else{
 						entry2 = pFIS_single_for_MU[0];
+						cout << tmp_ind[k] << endl;
 						cout << "Entered otherwise statement when evaluating tmp_ind(k)" << endl;
 					}
 					Polygon_2 cgal_entry2 = FA_to_cgalPolygon(entry2);

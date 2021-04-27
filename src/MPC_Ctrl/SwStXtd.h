@@ -14,11 +14,11 @@ struct Sw_St_Xtd_out {
 };
 
 Sw_St_Xtd_out generate_data(
-	[ ] ecat_data: current foot positions relative to the hip (x position) aka in hip frame
+	[x] ecat_data: current foot positions relative to the hip (x position) aka in hip frame
 	[x] vb: body velocity expressed in body frame (x velocity) 
-	[ ] vx_des : comes from the joystick
+	[x] vx_des : comes from the joystick
 	[ ] t : current time 
-	[ ] leg_command_in: at time t: which legs are in stance and which are in swing (line 396 convexMPC)
+	[x] leg_command_in: at time t: which legs are in stance and which are in swing (line 396 convexMPC)
 )
 */
 
@@ -47,6 +47,6 @@ void load_data_FFS(std::map<int, FA> *FFS_stack);
 void load_data_FIS_forward(std::map<string, FIA>* pFIS_stack);
 void load_data_FIS_backward(std::map<string, FIA>* pFIS_stack) ;
 
-void generate_data();
+Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vector<bool> leg_command_in);
 
 #endif
