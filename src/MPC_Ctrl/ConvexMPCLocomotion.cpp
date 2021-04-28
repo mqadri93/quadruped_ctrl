@@ -153,6 +153,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     world_position_desired[1] = stand_traj[1];
   }
 
+  // ======================= Chiheb start ===========================
   /*
     define input data to generate_data
   */ 
@@ -174,6 +175,9 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
       leg_command_in[i] = 0;
   }
 
+  cout << "==== body height =====" << endl; 
+  cout << seResult.position[2] << endl;
+
   // cout << "======= hip1 location =========" << endl;
   // cout << _quadruped.getHipLocation(0) << endl;
   // cout << "======= hip2 location =========" << endl;
@@ -189,13 +193,32 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
 
   // we need to generate MPC table, i.e., contact states throughout the MPC horizon
   // define a horizon
-  int h_mpc = 10;
+  int h_mpc = 1;
+  vector<float> touchdown_pos_world(NUM_LEGS, 0.);
 
   Sw_St_Xtd_out _gait;
   _gait = generate_data(x_fh, _stateEstimator.getResult().vBody[0], vx_des, leg_command_in);
+
+  float swingTimeRemaining_lookahead[NUM_LEGS];
   for(int leg = 0; leg < NUM_LEGS; leg++) {
-    if(_gait.swing_state_flag[leg] == 1)
+
+    // mark down the foot position at swing onset
+    if(_gait.swing_state_flag[leg]) {
       x_swingOnset[leg] = x_fh[leg];
+      swingTimeRemaining_lookahead[leg] = swingTimes[leg];
+    }
+    if(_gait.leg_command[leg] == 0 && !_gait.swing_state_flag[leg]) {
+      swingTimeRemaining_lookahead[leg] -= dt;
+    }
+
+    // transcribe touchdown position to world coodinates
+    Vec3<float> foot_pos = _legController.datas[leg].p;
+    foot_pos[2] = 0;
+    foot_pos[0] = _gait.x_td_out[leg];
+    Vec3<float> tmp = seResult.position +
+                      seResult.rBody.transpose() *
+                      (_quadruped.getHipLocation(leg) + foot_pos);
+    touchdown_pos_world[leg] = tmp[0];
   }
 
   int adaptive_mpc_table[h_mpc*NUM_LEGS];
@@ -204,30 +227,44 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   }
 
   float vb = _stateEstimator.getResult().vBody[0];
+  Sw_St_Xtd_out _gait_mpc = _gait;
+  
+  cout << "**************************" << endl;
+  cout << "leg command in MPC" << endl;
+  print_vector(_gait.leg_command);
+
   for(int iter = 1; iter < h_mpc; iter++) {
-    leg_command_in = _gait.leg_command;
+    leg_command_in = _gait_mpc.leg_command;
 
     for(int leg = 0; leg < NUM_LEGS; leg++) {
-      if(_gait.leg_command[leg] == 1) {
+      if(_gait_mpc.leg_command[leg] == 1) {
         x_fh[leg] = x_fh[leg] - vb*dt;
       } else {
-        x_fh[leg] = x_swingOnset[leg] + (_gait.x_td_out[leg]-x_swingOnset[leg])*swingTimeRemaining[leg];
-        if(x_fh[leg] >= _gait.x_td_out[leg])
+        x_fh[leg] = x_swingOnset[leg] + 
+                    (_gait_mpc.x_td_out[leg]-x_swingOnset[leg])*swingTimeRemaining_lookahead[leg]/swingTimes[leg];
+        if(x_fh[leg] >= _gait_mpc.x_td_out[leg])
           leg_command_in[leg] = 1;
       }
     }
-    _gait = generate_data(x_fh, vb, vx_des, leg_command_in);
+    Sw_St_Xtd_out _gait_mpc = generate_data(x_fh, vb, vx_des, leg_command_in);
     for(int leg = 0; leg < NUM_LEGS; leg++) {
-      if(_gait.swing_state_flag[leg] == 1)
+      if(_gait_mpc.swing_state_flag[leg]) {
         x_swingOnset[leg] = x_fh[leg];
+        swingTimeRemaining_lookahead[leg] = swingTimes[leg];
+      }
+      if(_gait_mpc.leg_command[leg] == 0 && !_gait_mpc.swing_state_flag[leg]) {
+        swingTimeRemaining_lookahead[leg] -= dt;
+      }
 
-      adaptive_mpc_table[iter*NUM_LEGS + leg] = _gait.leg_command[leg];
+      print_vector(_gait_mpc.leg_command);
+      adaptive_mpc_table[iter*NUM_LEGS + leg] = _gait_mpc.leg_command[leg];
     }
 
   }
+  cout << "**************************" << endl;
 
-  cout << "+++++++++++++++++++++++" << endl;
-  cout << "=======================" << endl;
+  // cout << "+++++++++++++++++++++++" << endl;
+  // cout << "=======================" << endl;
   // cout << "=====leg_position=====" << endl;
   // cout << _legController.datas[0].p << endl;
 
@@ -235,8 +272,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   // cout << _stateEstimator.getResult().contactEstimate[0] << endl;
   //Sw_St_Xtd_out _gait = generate_data(time, ecat_data, stancevsswing);
 
-
-
+  int h = h_mpc;
+  // ======================= Chiheb end ===========================
 
   // pick gait
   Gait* gait = &trotting;
@@ -329,11 +366,11 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   }
 
   current_gait = gaitNumber;
-  gait->setIterations(iterationsBetweenMPC, iterationCounter);  //步态周期计算
+  gait->setIterations(iterationsBetweenMPC, iterationCounter);  //步态周期计算 Gait cycle calculation
 
   // integrate position setpoint
   Vec3<float> v_des_robot(_x_vel_des, _y_vel_des,
-                          0);  //身体坐标系下的期望线速度
+                          0);  //身体坐标系下的期望线速度 Expected linear velocity in body coordinate system
   Vec3<float> v_des_world = omniMode
                                 ? v_des_robot
                                 : seResult.rBody.transpose() *
@@ -351,7 +388,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     rpy_int[0] += dt * (_roll_des - seResult.rpy[0]) / v_robot[1];
   }
 
-  //初始角度限幅
+  //初始角度限幅 Initial angle limit
   rpy_int[0] = fminf(fmaxf(rpy_int[0], -.25), .25);  //-0.25~0.25
   rpy_int[1] = fminf(fmaxf(rpy_int[1], -.25), .25);
   rpy_comp[1] = v_robot[0] * rpy_int[1];  // compensation 补偿值
@@ -428,6 +465,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     des_vel[2] = 0.0;
 
     //世界坐标系下hip坐标 以剩余摆动时间内匀速运动来估计
+    // Hip coordinates in the world coordinate system are estimated by 
+    // moving at a constant speed in the remaining swing time
     Vec3<float> Pf = seResult.position +
                      seResult.rBody.transpose() *
                          (pYawCorrected + des_vel * swingTimeRemaining[i]);
@@ -436,11 +475,14 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
 
     // Using the estimated velocity is correct
     // Vec3<float> des_vel_world = seResult.rBody.transpose() * des_vel;
-    float pfx_rel = seResult.vWorld[0] * (.5 + 0.0) *
-                        stance_time +  //_parameters->cmpc_bonus_swing = 0.0
+
+    // ======================= Chiheb start ===========================
+    float pfx_rel = _gait.x_td_out[i] + //seResult.vWorld[0] * (.5 + 0.0) *
+                        // stance_time +  //_parameters->cmpc_bonus_swing = 0.0
                     .03f * (seResult.vWorld[0] - v_des_world[0]) +
                     (0.5f * sqrt(seResult.position[2] / 9.81f)) *
                         (seResult.vWorld[1] * _yaw_turn_rate);
+    // ======================= Chiheb end ===========================
 
     float pfy_rel = seResult.vWorld[1] * .5 * stance_time * 1.0 + //dtMPC +
                     .03f * (seResult.vWorld[1] - v_des_world[1]) +
@@ -477,7 +519,10 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   Vec4<float> contactStates = gait->getContactState();
   Vec4<float> swingStates = gait->getSwingState();
   int* mpcTable = gait->getMpcTable();
-  updateMPCIfNeeded(mpcTable, _stateEstimator, omniMode);
+  // ======================= Chiheb start ===========================
+  // updateMPCIfNeeded(mpcTable, _stateEstimator, omniMode);
+  updateMPCIfNeeded(adaptive_mpc_table, _stateEstimator, omniMode);
+  // ======================= Chiheb end ===========================
 
   //  StateEstimator* se = hw_i->state_estimator;
   Vec4<float> se_contactState(0, 0, 0, 0);
@@ -485,8 +530,20 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   bool use_wbc = false;
 
   for (int foot = 0; foot < 4; foot++) {
-    float contactState = contactStates[foot];
-    float swingState = swingStates[foot];
+
+    // ======================= Chiheb start ===========================
+
+    // float contactState = contactStates[foot];
+    // float swingState = swingStates[foot];
+
+    // trying to replace their phase thing
+    float contactState = _gait.leg_command[foot];
+    float swingState = 0.;
+    if(_gait.leg_command[foot] == 0) {
+      swingState = swingTimeRemaining[foot]/swingTimes[foot];
+    }
+    // ======================= Chiheb end ===========================
+
     if (swingState > 0)  // foot is in swing
     {
       if (firstSwing[foot]) {

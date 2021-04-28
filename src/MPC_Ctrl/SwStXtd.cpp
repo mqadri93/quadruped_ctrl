@@ -27,8 +27,8 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vec
     
     // vector<float> ecat_data = {0.1, -0.16, -0.1, 0.1};
     float marginalUtility_threshold = 0.6; 
-    float x_swing = -0.15;
-    float x_td_nom = 0.15;
+    float x_swing = -0.1;
+    float x_td_nom = 0.1;
     int NUM_LEGS = 4;
     
     // float vb = 0.6;
