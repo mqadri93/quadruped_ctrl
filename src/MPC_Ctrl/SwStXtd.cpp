@@ -69,12 +69,12 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vec
                                     lesion_leg_xtd,
                                     lesion_leg_xswing);
     
-    cout << "=====leg_command=====" << endl;
-    print_vector(_gait.leg_command);
-    cout << "=====swing_state_flag=====" << endl;
-    print_vector(_gait.swing_state_flag);
-    cout << "=====x_td_out=====" << endl;
-    print_vector(_gait.x_td_out);
+    //cout << "=====leg_command=====" << endl;
+    //print_vector(_gait.leg_command);
+    //cout << "=====swing_state_flag=====" << endl;
+    //print_vector(_gait.swing_state_flag);
+    //cout << "=====x_td_out=====" << endl;
+    //print_vector(_gait.x_td_out);
 
     return _gait;
 }
@@ -296,8 +296,8 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 			if(check_leg_in_stance[i]==legs) continue;
 			tmp_ind.push_back(check_leg_in_stance[i]);
 		}
-		cout << "==== tmp_ind size ======" << endl;
-		cout << tmp_ind.size() << endl;
+		//cout << "==== tmp_ind size ======" << endl;
+		//cout << tmp_ind.size() << endl;
 		if(tmp_ind.size() > 0) {
 			if(tmp_ind[0] == 0) {
 				tmp = pFIS_single_for_MU[0];

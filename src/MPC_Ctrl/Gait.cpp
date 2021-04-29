@@ -142,7 +142,7 @@ Vec4<float> MixedFrequncyGait::getSwingState() {
 int* OffsetDurationGait::getMpcTable()
 {
 
-  //printf("MPC table:\n");
+  printf("MPC table:\n");
   // printf("value is: %d", _nIterations);   _nIterations = 10
   for(int i = 0; i < _nIterations; i++)
   {
@@ -156,11 +156,11 @@ int* OffsetDurationGait::getMpcTable()
       else
         _mpc_table[i*4 + j] = 0;
 
-      // printf("%d ", _mpc_table[i*4 + j]);
+      printf("%d ", _mpc_table[i*4 + j]);
     }
-    // printf("\n");
+    printf("\n");
   }
-  // printf("\n");
+  printf("\n");
 
   return _mpc_table;
 }

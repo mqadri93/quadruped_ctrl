@@ -131,35 +131,47 @@ bool SafetyChecker<T>::checkJointLimit(LegController<float>& _legController){
   T max_hip_angle = 0.174533;   //10 degree
   T min_hip_angle = -1.8;  //-1.22173;    //-70 degree
   T max_knee_angle = 2.79253;    //160 degree
+  //T max_knee_angle = 3;
   T min_knee_angle = -0.174533;   //-10 degree
 
+  //std::cout << "Inside checkJointLimit" << std::endl;
   for (int leg = 0; leg < 4; leg++) {
+    //std::cout << "Leg num " << std::to_string(leg) << std::endl;
+
     if(_legController.datas[leg].q(0) < -max_ab_ad_angle) {
+      //std::cout << "1 - Failing here" << std::endl;
       _legController.datas[leg].q(0) = -max_ab_ad_angle;
       safeJoint = false;
     }
 
     if(_legController.datas[leg].q(0) > max_ab_ad_angle) {
+      //std::cout << "2 - Failing here" << std::endl;
       _legController.datas[leg].q(0) = max_ab_ad_angle;
       safeJoint = false;
     }
 
     if(_legController.datas[leg].q(1) < min_hip_angle) {
+      //std::cout << "3 - Failing here" << std::endl;
       _legController.datas[leg].q(1) = min_hip_angle;
       safeJoint = false;
     }
 
     if(_legController.datas[leg].q(1) > max_hip_angle) {
+      //std::cout << "4 - Failing here" << std::endl;
       _legController.datas[leg].q(1) = max_hip_angle;
       safeJoint = false;
     }
 
     if(_legController.datas[leg].q(2) > max_knee_angle) {
+      //std::cout << "5 - Failing here" << std::endl;
+      //std::cout << _legController.datas[leg].q(2) << std::endl;
+      //std::cout << max_knee_angle << std::endl;
       _legController.datas[leg].q(2) = max_knee_angle;
       safeJoint = false;
     }
 
     if(_legController.datas[leg].q(2) < min_knee_angle) {
+      //std::cout << "6 - Failing here" << std::endl;
       _legController.datas[leg].q(2) = min_knee_angle;
       safeJoint = false;
     }

@@ -195,7 +195,8 @@ void GaitCtrller::ToqueCalculator(double* imuData, double* motorData,
       effort[i * 3 + 2] = 0.0;
     }
   }
-  
+  //std::cout << "==============================================" << std::endl;
+  //std::cout << "safety_check " << _safetyCheck << std::endl;
 
   // return effort;
 }
