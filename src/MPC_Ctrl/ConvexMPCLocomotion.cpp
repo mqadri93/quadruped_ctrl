@@ -255,8 +255,14 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   } 
   else if(robotMode == 2) {
       gait = &adapt;
-      gait->counter+=1;
-      cout << "counter value " << gait->counter << endl;
+      //gait->counter+=1;
+      //cout << "counter value " << gait->counter << endl;
+      for (int l = 0; l < 4; l++) {
+        swingTimes[l] = gait->getCurrentSwingTime(
+            dtMPC, l);  // return dtMPC * _stance  0.026 * 5 = 0.13
+                        // dtMPC的值变为了0.026，外部给修改的赋值
+      }
+
       float vx_des = gamepadCommand[0];    
       float eps = 0.005;
       
