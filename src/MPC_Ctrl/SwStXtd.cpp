@@ -52,7 +52,7 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data,
     // Tests
     //lesion_leg_xswing[0] = lesion_leg_xswing[0]*2;
     //lesion_legs[0] = true;
-	cout << "******************************************" << endl;
+	/*cout << "******************************************" << endl;
 	cout << "leg command in " << endl;
  	print_vector(leg_command_in);
 	cout << "ecat data" << endl;
@@ -61,6 +61,7 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data,
 	cout << vb << endl;
 	cout << "vx_des" << endl;
 	cout << vx_des << endl;
+	*/
 
     Sw_St_Xtd_out _gait = Sw_St_Xtd(pFIS_stack,
                                     FFS_stack,

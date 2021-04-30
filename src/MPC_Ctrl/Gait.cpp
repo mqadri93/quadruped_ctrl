@@ -221,7 +221,7 @@ Vec4<float> AdaptiveGait::getSwingState()
 int* OffsetDurationGait::getMpcTable()
 {
 
-  printf("MPC table:\n");
+  //printf("OffsetDurationGait::getMpcTable:\n");
   // printf("value is: %d", _nIterations);   _nIterations = 10
   for(int i = 0; i < _nIterations; i++)
   {
@@ -235,17 +235,12 @@ int* OffsetDurationGait::getMpcTable()
       else
         _mpc_table[i*4 + j] = 0;
 
-      printf("%d ", _mpc_table[i*4 + j]);
+      //printf("%d ", _mpc_table[i*4 + j]);
     }
-    printf("\n");
+    //printf("\n");
   }
-  printf("\n");
+  //printf("\n");
 
-  return _mpc_table;
-}
-
-// This is just a placeholder to match the base class functions
-int* OffsetDurationGait::getAdaptiveMpcTable() {
   return _mpc_table;
 }
 
@@ -270,44 +265,8 @@ int* MixedFrequncyGait::getMpcTable() {
 
 // This is just a placeholder to match the base class functions
 
-int* MixedFrequncyGait::getAdaptiveMpcTable() {
-  return _mpc_table;
-}
-
 
 int* AdaptiveGait::getMpcTable()
-{
-
-  //printf("MPC table:\n");
-  // printf("value is: %d", _nIterations);   _nIterations = 10
-  for(int i = 0; i < _nIterations; i++)
-  {
-    int iter = (i + _iteration + 1) % _nIterations;
-    Array4i progress = iter - _offsets;
-    for(int j = 0; j < 4; j++)
-    {
-      if(progress[j] < 0) progress[j] += _nIterations;
-      if(progress[j] < _durations[j])
-        _mpc_table[i*4 + j] = 1;
-      else
-        _mpc_table[i*4 + j] = 0;
-
-     // printf("%d ", _mpc_table[i*4 + j]);
-    }
-    //printf("\n");
-  }
-  //printf("\n");
-
-  return _mpc_table;
-}
-
-/*
-int* AdaptiveGait::getAdaptiveMpcTable() {
-  return _mpc_table;
-}
-*/
-
-int* AdaptiveGait::getAdaptiveMpcTable()
 {
   int NUM_LEGS = 4;
   //float vx_des = gamepadCommand[0];
@@ -322,7 +281,6 @@ int* AdaptiveGait::getAdaptiveMpcTable()
   //cout << "**************************" << endl;
   //cout << "leg command in MPC" << endl;
   //print_vector(_gait.leg_command);
-
   for(int iter = 1; iter < h_mpc; iter++) {
     leg_command_in = _gait_mpc.leg_command;
 
@@ -347,8 +305,7 @@ int* AdaptiveGait::getAdaptiveMpcTable()
       if(_gait_mpc.leg_command[leg] == 0 && !_gait_mpc.swing_state_flag[leg]) {
         swingTimeRemaining_lookahead[leg] -= dt;
       }
-    
-      //print_vector(_gait_mpc.leg_command);
+      //cout << "i " << iter*NUM_LEGS + leg  << " " << _gait_mpc.leg_command[leg] << endl;;
       _mpc_table[iter*NUM_LEGS + leg] = _gait_mpc.leg_command[leg];
     }
 
@@ -356,6 +313,12 @@ int* AdaptiveGait::getAdaptiveMpcTable()
 
   return _mpc_table;
 }
+
+/*
+int* AdaptiveGait::getAdaptiveMpcTable() {
+  return _mpc_table;
+}
+*/
 
 void OffsetDurationGait::setIterations(int iterationsPerMPC, int currentIteration)
 {

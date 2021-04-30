@@ -19,7 +19,6 @@ public:
   virtual Vec4<float> getContactState() = 0;
   virtual Vec4<float> getSwingState() = 0;
   virtual int* getMpcTable() = 0;
-  virtual int* getAdaptiveMpcTable() = 0;
   virtual void setIterations(int iterationsBetweenMPC, int currentIteration) = 0;
   virtual float getCurrentStanceTime(float dtMPC, int leg) = 0;
   virtual float getCurrentSwingTime(float dtMPC, int leg) = 0;
@@ -54,7 +53,6 @@ public:
   Vec4<float> getContactState();
   Vec4<float> getSwingState();
   int* getMpcTable();
-  int* getAdaptiveMpcTable();
   void setIterations(int iterationsBetweenMPC, int currentIteration);
   float getCurrentStanceTime(float dtMPC, int leg);
   float getCurrentSwingTime(float dtMPC, int leg);
@@ -84,7 +82,6 @@ public:
   Vec4<float> getContactState();
   Vec4<float> getSwingState();
   int* getMpcTable();
-  int* getAdaptiveMpcTable();
   void setIterations(int iterationsBetweenMPC, int currentIteration);
   float getCurrentStanceTime(float dtMPC, int leg);
   float getCurrentSwingTime(float dtMPC, int leg);
@@ -109,7 +106,6 @@ public:
   Vec4<float> getContactState();
   Vec4<float> getSwingState();
   int* getMpcTable();
-  int* getAdaptiveMpcTable();
   void setIterations(int iterationsBetweenMPC, int currentIteration);
   float getCurrentStanceTime(float dtMPC, int leg);
   float getCurrentSwingTime(float dtMPC, int leg);

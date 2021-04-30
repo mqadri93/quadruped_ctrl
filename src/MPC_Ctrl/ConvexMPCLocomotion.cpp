@@ -41,8 +41,8 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
       walking2(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(10, 10, 10, 10), "Walking2"),
       pacing(horizonLength, Vec4<int>(7, 0, 7, 0), Vec4<int>(7, 7, 7, 7), "Pacing"),
       aio(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(14, 14, 14, 14), "aio"),
-      adapt(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0), 
-      Vec4<int>(horizonLength/2.0, horizonLength/2.0, horizonLength/2.0, horizonLength/2.0), "Adaptive") {
+      adapt(4, Vec4<int>(0, 0, 0., 0), 
+      Vec4<int>(4, 4, 4, 4), "Adaptive") {
   dtMPC = dt * iterationsBetweenMPC;  // 0.03
   default_iterations_between_mpc = iterationsBetweenMPC;
   printf("[Convex MPC] dt: %.3f iterations: %d, dtMPC: %.3f\n", dt,
@@ -288,7 +288,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                           (_quadruped.getHipLocation(leg) + foot_pos);
         gait->touchdown_pos_world[leg] = tmp[0];
       }
-      gait->h_mpc = horizonLength;
+
+      gait->h_mpc = gait->getGaitHorizon();
       gait->vb = vb;
       gait->vx_des = vx_des;
       gait->swingTimes=swingTimes;
@@ -495,15 +496,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   Vec4<float> contactStates = gait->getContactState();
   Vec4<float> swingStates = gait->getSwingState();
   int* mpcTable;
-  if(robotMode == 2) {
+  mpcTable = gait->getMpcTable();
 
-    mpcTable = gait->getAdaptiveMpcTable();
-
-    //mpcTable = gait->getMpcTable();
-  }
-  else {
-    mpcTable = gait->getMpcTable();
-  }
   printf("MPC table:\n");
   for(int i = 0; i < gait->getGaitHorizon(); i++)
   {
