@@ -26,7 +26,7 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
     : iterationsBetweenMPC(_iterations_between_mpc),  //控制频率用  15
       horizonLength(14),
       dt(_dt),  // 0.002
-      trotting(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0), 
+      trotting(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0),
       Vec4<int>(horizonLength/2.0, horizonLength/2.0, horizonLength/2.0, horizonLength/2.0), "Trotting"),
       bounding(horizonLength, Vec4<int>(7, 7, 0, 0), Vec4<int>(6, 6, 6, 6), "Bounding"),
       // bounding(horizonLength,
@@ -36,7 +36,7 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
       galloping(horizonLength, Vec4<int>(0, 4, 7, 11), Vec4<int>(7, 7, 7, 7), "Galloping"),
       standing( horizonLength, Vec4<int>(0, 0, 0, 0),  Vec4<int>(14, 14, 14, 14), "Standing"),
       trotRunning(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(6, 6, 6, 6), "Trot Running"),
-      walking(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/4.0, 3.0*horizonLength/4.0), 
+      walking(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/4.0, 3.0*horizonLength/4.0),
       Vec4<int>(3.0*horizonLength/4.0,3.0*horizonLength/4.0,3.0*horizonLength/4.0,3.0*horizonLength/4.0), "Walking"),
       walking2(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(10, 10, 10, 10), "Walking2"),
       pacing(horizonLength, Vec4<int>(7, 0, 7, 0), Vec4<int>(7, 7, 7, 7), "Pacing"),
@@ -115,26 +115,8 @@ void ConvexMPCLocomotion::_SetupCommand(
   _pitch_des = 0.;
 }
 
-template <>
-void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
-                              LegController<float>& _legController,
-                              StateEstimatorContainer<float>& _stateEstimator,
-                              DesiredStateCommand<float>& _desiredStateCommand,
-                              std::vector<double> gamepadCommand,
-                              int gaitType, int robotMode) {
-  bool omniMode = false;
-  // Command Setup
-  _SetupCommand(_stateEstimator, gamepadCommand);
-
-  gaitNumber = gaitType;  // data.userParameters->cmpc_gait; 步态默认为trot
-
-  if (gaitNumber >= 20) {
-    gaitNumber -= 20;
-    omniMode = true;
-  }
-
+Gait* ConvexMPCLocomotion::specifyGait(int robotMode, int gaitNumber, StateEstimatorContainer<float>& _stateEstimator){
   auto& seResult = _stateEstimator.getResult();  //状态估计器
-
   // Check if transition to standing 检查是否过渡到站立
   if (((gaitNumber == 4) && current_gait != 4) || firstRun) {
     stand_traj[0] = seResult.position[0];
@@ -190,7 +172,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
           if(gait->getGaitHorizon() != h) {
             iterationCounter = 0;
           }
-          gait->setGaitParam(h, Vec4<int>(0, h / 2, h / 2, 0), 
+          gait->setGaitParam(h, Vec4<int>(0, h / 2, h / 2, 0),
                                 Vec4<int>(h / 2, h / 2, h / 2, h / 2), "trotting");
         }
       } else {
@@ -200,7 +182,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
             iterationCounter = 0;
           }
           gait->setGaitParam(h,
-                  Vec4<int>(0, 1 * h / 2, 1 * h / 4, 3 * h / 4), 
+                  Vec4<int>(0, 1 * h / 2, 1 * h / 4, 3 * h / 4),
                   Vec4<int>(3 * h / 4, 3 * h / 4, 3 * h / 4, 3 * h / 4), "Walking");
         } else if(vBody > 0.2 && vBody <= 0.4) {
           h = 16;
@@ -209,7 +191,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
           }
           gait->setGaitParam(h,
                   Vec4<int>(0, 1 * h / 2, h*((5.0/4.0)*vBody), h*((5.0/4.0)*vBody+(1.0/2.0))),
-                  Vec4<int>(h*((-5.0/4.0)*vBody+1.0), h*((-5.0/4.0)*vBody+1.0), 
+                  Vec4<int>(h*((-5.0/4.0)*vBody+1.0), h*((-5.0/4.0)*vBody+1.0),
                             h*((-5.0/4.0)*vBody+1.0), h*((-5.0/4.0)*vBody+1.0)), "Walking2trotting");
         } else if(vBody > 0.4 && vBody <= 1.4) {
           h = 14;
@@ -236,18 +218,43 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   } else {
     std::cout << "err robot mode!!!" << std::endl;
   }
+  return gait;
+}  // Gait* gait = specifyGait(robotMode, gaitNumber, _stateEstimator);
+
+template <>
+void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
+                              LegController<float>& _legController,
+                              StateEstimatorContainer<float>& _stateEstimator,
+                              DesiredStateCommand<float>& _desiredStateCommand,
+                              std::vector<double> gamepadCommand,
+                              int gaitType, int robotMode) {
+  bool omniMode = false;
+  // Command Setup
+  _SetupCommand(_stateEstimator, gamepadCommand);
+
+  gaitNumber = gaitType;  // data.userParameters->cmpc_gait; 步态默认为trot
+
+  if (gaitNumber >= 20) {
+    gaitNumber -= 20;
+    omniMode = true;
+  }
+
+  auto& seResult = _stateEstimator.getResult();  //状态估计器
+
+  Gait* gait = specifyGait(robotMode, gaitNumber, _stateEstimator);
 
   current_gait = gaitNumber;
   gait->setIterations(iterationsBetweenMPC, iterationCounter);  //步态周期计算
 
   // integrate position setpoint
+  // 身体坐标系下的期望线速度 -- Expected linear velocity in body coordinate system
   Vec3<float> v_des_robot(_x_vel_des, _y_vel_des,
-                          0);  //身体坐标系下的期望线速度
-  Vec3<float> v_des_world = omniMode
-                                ? v_des_robot
-                                : seResult.rBody.transpose() *
-                                      v_des_robot;  //世界坐标系下的期望线速度
-  Vec3<float> v_robot = seResult.vWorld;  //世界坐标系下的机器人实际速度
+                          0);
+  // 世界坐标系下的期望线速度  -- Expected linear velocity in the world coordinate system
+  Vec3<float> v_des_world = omniMode ? v_des_robot : seResult.rBody.transpose()*v_des_robot;
+  // 世界坐标系下的机器人实际速度
+  // The actual speed of the robot in the world coordinate system
+  Vec3<float> v_robot = seResult.vWorld;
 
   // Integral-esque pitche and roll compensation
   // 积分达到补偿值*******************************
@@ -358,7 +365,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     if (i == 1) {
       // std::cout << "pf0 = " << (seResult.rBody*(Pf- seResult.position)).transpose() << " " << std::endl;
       // std::cout << pfx_rel << " " << pfy_rel << std::endl;
-      // std::cout << 0.5f * sqrt(seResult.position[2] / 9.81f) * (seResult.vWorld[1] * _yaw_turn_rate) << " " 
+      // std::cout << 0.5f * sqrt(seResult.position[2] / 9.81f) * (seResult.vWorld[1] * _yaw_turn_rate) << " "
       //           << (0.5f * sqrt(seResult.position[2] / 9.81f)) * (-seResult.vWorld[0] * _yaw_turn_rate) << std::endl;
       // std::cout << (0.5f * seResult.position[2] / 9.81f) * (seResult.vWorld[0] * _yaw_turn_rate) << std::endl;
       // std::cout << _yaw_turn_rate << std::endl;

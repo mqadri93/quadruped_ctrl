@@ -6,7 +6,7 @@
 #include "SparseCMPC.h"
 #include "Utilities/cppTypes.h"
 #include "Gait.h"
-#include <fstream> 
+#include <fstream>
 #include <sys/time.h>
 
 #include <cstdio>
@@ -130,6 +130,7 @@ private:
   float _body_height_running = 0.29;
   float _body_height_jumping = 0.36;
 
+  Gait* specifyGait(int robotMode, int gaitNumber, StateEstimatorContainer<float>& _stateEstimator);
   void recompute_timing(int iterations_per_mpc);
   void updateMPCIfNeeded(int* mpcTable, StateEstimatorContainer<float> &_stateEstimator, bool omniMode);
   void solveDenseMPC(int *mpcTable, StateEstimatorContainer<float> &_stateEstimator);

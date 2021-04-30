@@ -205,7 +205,7 @@ def reset_robot():
         force = 0
         p.setJointMotorControl2(
             boxId, j, p.VELOCITY_CONTROL, force=force)
-    
+
     cpp_gait_ctrller.set_robot_mode(convert_type(1))
     for _ in range(200):
         run()
@@ -359,11 +359,11 @@ def camera_update():
         T1 = numpy.mat([[0, -1.0/2.0, numpy.sqrt(3.0)/2.0, 0.25], [-1, 0, 0, 0],
                         [0, -numpy.sqrt(3.0)/2.0, -1.0/2.0, 0], [0, 0, 0, 1]])
 
-        T2 = numpy.mat([[get_matrix[0], get_matrix[1], get_matrix[2], cubePos[0]], 
-                        [get_matrix[3], get_matrix[4], get_matrix[5], cubePos[1]], 
-                        [get_matrix[6], get_matrix[7], get_matrix[8], cubePos[2]], 
+        T2 = numpy.mat([[get_matrix[0], get_matrix[1], get_matrix[2], cubePos[0]],
+                        [get_matrix[3], get_matrix[4], get_matrix[5], cubePos[1]],
+                        [get_matrix[6], get_matrix[7], get_matrix[8], cubePos[2]],
                         [0, 0, 0, 1]])
-        
+
         T2_ = (T2.I)
         T3_ = numpy.array(T2*T1)
 
@@ -424,15 +424,15 @@ def camera_update():
         cloud_point = [0]*pixelWidth*pixelHeight*3
         depthBuffer = numpy.reshape(depthImg,[pixelHeight,pixelWidth])
         depth = depthBuffer
-        for h in range(0, pixelHeight):    
-            for w in range(0, pixelWidth):   
+        for h in range(0, pixelHeight):
+            for w in range(0, pixelWidth):
                 depth[h][w] =float(depthBuffer[h,w])
                 depth[h][w] = far * near / (far - (far - near) * depthBuffer[h][w])
                 Z= float(depth[h][w])
                 if (Z >4):
                     continue
                 if (Z< 0.01):
-                    continue 
+                    continue
                 X=(w-cx)*Z/fx
                 Y=(h-cy)*Z/fy
                 XYZ_= numpy.mat([[X],[Y],[Z],[1]])
@@ -494,7 +494,7 @@ def main():
             high_performance_flag = p.readUserDebugParameter(high_performance_mode)
             rospy.logwarn("set robot to high performance mode")
             cpp_gait_ctrller.set_robot_mode(convert_type(0))
-        
+
         run()
 
         cnt += 1
