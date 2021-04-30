@@ -3,7 +3,11 @@
 // static double t_liftoff = 0;
 
 
-Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vector<bool> leg_command_in) {
+Sw_St_Xtd_out generate_data(vector<float> ecat_data, 
+							float vb, 
+							float vx_des, 
+							vector<bool> leg_command_in) 
+{
     std::map<int, FA> FFS_stack;
     std::map<std::string, FIA> pFIS_stack;
 
@@ -48,6 +52,16 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data, float vb, float vx_des, vec
     // Tests
     //lesion_leg_xswing[0] = lesion_leg_xswing[0]*2;
     //lesion_legs[0] = true;
+	cout << "******************************************" << endl;
+	cout << "leg command in " << endl;
+ 	print_vector(leg_command_in);
+	cout << "ecat data" << endl;
+	print_vector(ecat_data);
+	cout << "vb" << endl;
+	cout << vb << endl;
+	cout << "vx_des" << endl;
+	cout << vx_des << endl;
+
     Sw_St_Xtd_out _gait = Sw_St_Xtd(pFIS_stack,
                                     FFS_stack,
                                     nodes,

@@ -146,6 +146,7 @@ private:
   FootSwingTrajectory<float> footSwingTrajectories[4];
   OffsetDurationGait aio, trotting, bounding, pronking, jumping, galloping, standing, trotRunning, walking, walking2, pacing;
   // MixedFrequncyGait random, random2;
+  AdaptiveGait adapt;
   Mat3<float> Kp, Kd, Kp_stance, Kd_stance, Kp1;
   bool firstRun = true;
   bool firstSwing[4];  //true

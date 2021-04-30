@@ -24,7 +24,7 @@
 
 ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
     : iterationsBetweenMPC(_iterations_between_mpc),  //控制频率用  15
-      horizonLength(4),
+      horizonLength(14),
       dt(_dt),  // 0.002
       trotting(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0), 
       Vec4<int>(horizonLength/2.0, horizonLength/2.0, horizonLength/2.0, horizonLength/2.0), "Trotting"),
@@ -34,13 +34,15 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
       pronking(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(6, 6, 6, 6), "Pronking"),
       jumping(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(3, 3, 3, 3), "Jumping"),
       galloping(horizonLength, Vec4<int>(0, 4, 7, 11), Vec4<int>(7, 7, 7, 7), "Galloping"),
-      standing( 4, Vec4<int>(0, 0, 0, 0),  Vec4<int>(4, 4, 4, 4), "Standing"),
+      standing( horizonLength, Vec4<int>(0, 0, 0, 0),  Vec4<int>(horizonLength, horizonLength, horizonLength, horizonLength), "Standing"),
       trotRunning(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(6, 6, 6, 6), "Trot Running"),
       walking(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/4.0, 3.0*horizonLength/4.0), 
       Vec4<int>(3.0*horizonLength/4.0,3.0*horizonLength/4.0,3.0*horizonLength/4.0,3.0*horizonLength/4.0), "Walking"),
       walking2(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(10, 10, 10, 10), "Walking2"),
       pacing(horizonLength, Vec4<int>(7, 0, 7, 0), Vec4<int>(7, 7, 7, 7), "Pacing"),
-      aio(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(14, 14, 14, 14), "aio") {
+      aio(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(14, 14, 14, 14), "aio"),
+      adapt(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0), 
+      Vec4<int>(horizonLength/2.0, horizonLength/2.0, horizonLength/2.0, horizonLength/2.0), "Adaptive") {
   dtMPC = dt * iterationsBetweenMPC;  // 0.03
   default_iterations_between_mpc = iterationsBetweenMPC;
   printf("[Convex MPC] dt: %.3f iterations: %d, dtMPC: %.3f\n", dt,
@@ -125,6 +127,13 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                               std::vector<double> gamepadCommand,
                               int gaitType, int robotMode) {
   bool omniMode = false;
+  int NUM_LEGS = 4;
+  Sw_St_Xtd_out _gait;
+  float vx_des = gamepadCommand[0];
+  float vb = _stateEstimator.getResult().vBody[0];
+
+  std::vector<float> x_fh = {_legController.datas[0].p[0], _legController.datas[1].p[0], 
+                              _legController.datas[2].p[0], _legController.datas[3].p[0]};
   // Command Setup
   _SetupCommand(_stateEstimator, gamepadCommand);
   //cout << "=====body velocity=====" << endl;
@@ -155,145 +164,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     world_position_desired[1] = stand_traj[1];
   }
 
-  // ======================= Chiheb start ===========================
-  /*
-    define input data to generate_data
-  */
-  bool use_custom = true;
-
-  int NUM_LEGS = 4;
-  
-  std::vector<float> x_fh = {_legController.datas[0].p[0], _legController.datas[1].p[0], 
-                              _legController.datas[2].p[0], _legController.datas[3].p[0]};
-
-  float vx_des = gamepadCommand[0];    
-  float eps = 0.005;
-  vector<bool> leg_command_in(NUM_LEGS, 1); 
-  std::vector<float> x_swingOnset(NUM_LEGS, 0);
-
-  // very simplistic contact estimation  
-  //cout << "==== simple contact estimation =====" << endl;  
-  for(int i=0; i < NUM_LEGS; i++){
-    // if foot is above ground
-    //cout << _legController.datas[i].p[2] + (seResult.position[2] - eps) << endl;
-    if(_legController.datas[i].p[2] <= -(seResult.position[2] - eps))
-      leg_command_in[i] = 0;
-  }
-
-  //cout << "==== body height =====" << endl; 
-  //cout << seResult.position[2] << endl;
-
-  // cout << "======= hip1 location =========" << endl;
-  // cout << _quadruped.getHipLocation(0) << endl;
-  // cout << "======= hip2 location =========" << endl;
-  // cout << _quadruped.getHipLocation(1) << endl;
-  // cout << "======= hip3 location =========" << endl;
-  // cout << _quadruped.getHipLocation(2) << endl;
-  // cout << "======= hip4 location =========" << endl;
-  // cout << _quadruped.getHipLocation(3) << endl;
-
-  //cout << "======= leg_command_in =========" << endl;
-  //cout << leg_command_in[0] << ", " << leg_command_in[1] << ", " <<
-  //        leg_command_in[2] << ", " << leg_command_in[3] << endl;
-
-  // we need to generate MPC table, i.e., contact states throughout the MPC horizon
-  // define a horizon
-  int h_mpc = 4;
-  vector<float> touchdown_pos_world(NUM_LEGS, 0.);
-
-  Sw_St_Xtd_out _gait;
-  _gait = generate_data(x_fh, _stateEstimator.getResult().vBody[0], vx_des, leg_command_in);
-
-  float swingTimeRemaining_lookahead[NUM_LEGS];
-  for(int leg = 0; leg < NUM_LEGS; leg++) {
-
-    // mark down the foot position at swing onset
-    if(_gait.swing_state_flag[leg]) {
-      x_swingOnset[leg] = x_fh[leg];
-      swingTimeRemaining_lookahead[leg] = swingTimes[leg];
-    }
-    if(_gait.leg_command[leg] == 0 && !_gait.swing_state_flag[leg]) {
-      swingTimeRemaining_lookahead[leg] -= dt;
-    }
-
-    // transcribe touchdown position to world coodinates
-    Vec3<float> foot_pos = _legController.datas[leg].p;
-    foot_pos[2] = 0;
-    foot_pos[0] = _gait.x_td_out[leg];
-    Vec3<float> tmp = seResult.position +
-                      seResult.rBody.transpose() *
-                      (_quadruped.getHipLocation(leg) + foot_pos);
-    touchdown_pos_world[leg] = tmp[0];
-  }
-
-  int adaptive_mpc_table[h_mpc*NUM_LEGS];
-  for(int i=0; i<NUM_LEGS; i++){
-    adaptive_mpc_table[i] = _gait.leg_command[i];
-  }
-  
-  float vb = _stateEstimator.getResult().vBody[0];
-  Sw_St_Xtd_out _gait_mpc = _gait;
-  
-  //cout << "**************************" << endl;
-  //cout << "leg command in MPC" << endl;
-  //print_vector(_gait.leg_command);
-
-  for(int iter = 1; iter < h_mpc; iter++) {
-    leg_command_in = _gait_mpc.leg_command;
-
-    for(int leg = 0; leg < NUM_LEGS; leg++) {
-      if(_gait_mpc.leg_command[leg] == 1) {
-        x_fh[leg] = x_fh[leg] - vb*dt;
-      } else {
-        x_fh[leg] = x_swingOnset[leg] + 
-                    (_gait_mpc.x_td_out[leg]-x_swingOnset[leg])*swingTimeRemaining_lookahead[leg]/swingTimes[leg];
-        if(x_fh[leg] >= _gait_mpc.x_td_out[leg])
-          leg_command_in[leg] = 1;
-      }
-    }
-    
-    //Sw_St_Xtd_out _gait_mpc = generate_data(x_fh, vb, vx_des, leg_command_in);
-    for(int leg = 0; leg < NUM_LEGS; leg++) {
-      if(_gait_mpc.swing_state_flag[leg]) {
-        x_swingOnset[leg] = x_fh[leg];
-        swingTimeRemaining_lookahead[leg] = swingTimes[leg];
-      }
-      if(_gait_mpc.leg_command[leg] == 0 && !_gait_mpc.swing_state_flag[leg]) {
-        swingTimeRemaining_lookahead[leg] -= dt;
-      }
-    
-      //print_vector(_gait_mpc.leg_command);
-      adaptive_mpc_table[iter*NUM_LEGS + leg] = _gait_mpc.leg_command[leg];
-    }
-
-  }
-
-  printf("Our MPC table:\n");
-    // printf("value is: %d", _nIterations);   _nIterations = 10
-    for(int i = 0; i < h_mpc; i++)
-    {
-      for(int j = 0; j < 4; j++)
-        {
-          printf("%d ", adaptive_mpc_table[i*4 + j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-                              
-  //cout << "**************************" << endl;
-
-  // cout << "+++++++++++++++++++++++" << endl;
-  // cout << "=======================" << endl;
-  // cout << "=====leg_position=====" << endl;
-  // cout << _legController.datas[0].p << endl;
-
-  // cout << "=====leg_command=====" << endl;
-  // cout << _stateEstimator.getResult().contactEstimate[0] << endl;
-  //Sw_St_Xtd_out _gait = generate_data(time, ecat_data, stancevsswing);
-  
-  int h = h_mpc;
-
-  // ======================= Chiheb end ===========================
+  //int h = h_mpc;
 
   // pick gait
   Gait* gait = &trotting;
@@ -381,15 +252,83 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
       }
     }
     horizonLength = h;
-  } else {
+  } 
+  else if(robotMode == 2) {
+      gait = &adapt;
+      gait->counter+=1;
+      cout << "counter value " << gait->counter << endl;
+      float vx_des = gamepadCommand[0];    
+      float eps = 0.005;
+      
+      //for(int i=0; i < NUM_LEGS; i++){
+        // if foot is above ground
+      //  if(_legController.datas[i].p[2] <= -(seResult.position[2]))
+      //    gait->leg_command_in[i] = 0;
+      //}
+      _gait = generate_data(x_fh, _stateEstimator.getResult().vBody[0], vx_des, gait->leg_command_in);
+      //_gait = generate_data(x_fh, 1, vx_des, gait->leg_command_in);
+
+      for(int leg = 0; leg < NUM_LEGS; leg++) {
+
+        // mark down the foot position at swing onset
+        if(_gait.swing_state_flag[leg]) {
+          gait->x_swingOnset[leg] = x_fh[leg];
+          gait->swingTimeRemaining_lookahead[leg] = swingTimes[leg];
+        }
+        if(_gait.leg_command[leg] == 0 && !_gait.swing_state_flag[leg]) {
+          gait->swingTimeRemaining_lookahead[leg] -= dt;
+        }
+
+        // transcribe touchdown position to world coodinates
+        Vec3<float> foot_pos = _legController.datas[leg].p;
+        foot_pos[2] = 0;
+        foot_pos[0] = _gait.x_td_out[leg];
+        Vec3<float> tmp = seResult.position +
+                          seResult.rBody.transpose() *
+                          (_quadruped.getHipLocation(leg) + foot_pos);
+        gait->touchdown_pos_world[leg] = tmp[0];
+      }
+      gait->h_mpc = horizonLength;
+      gait->vb = vb;
+      gait->vx_des = vx_des;
+      gait->swingTimes=swingTimes;
+      gait->dt=dt;
+      gait->x_fh = x_fh;
+      gait->_gait = _gait;
+      /*printf("Our MPC table:\n");
+        // printf("value is: %d", _nIterations);   _nIterations = 10
+        for(int i = 0; i < h_mpc; i++)
+        {
+          for(int j = 0; j < 4; j++)
+            {
+              printf("%d ", adaptive_mpc_table[i*4 + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+      */
+      //if(_dt > 1) exit(0);                            
+      //cout << "**************************" << endl;
+
+      // cout << "+++++++++++++++++++++++" << endl;
+      // cout << "=======================" << endl;
+      // cout << "=====leg_position=====" << endl;
+      // cout << _legController.datas[0].p << endl;
+
+      // cout << "=====leg_command=====" << endl;
+      // cout << _stateEstimator.getResult().contactEstimate[0] << endl;
+      //Sw_St_Xtd_out _gait = generate_data(time, ecat_data, stancevsswing);
+  }
+  else {
     std::cout << "err robot mode!!!" << std::endl;
   }
   //bool use_custom = true; 
   //if(use_custom) {
   //  Gait* gait = &trotting;
- // }
-  gait = &trotting;
-  gaitNumber = 9;
+  // }
+  //cout << "standing" << endl;
+  //gait = &standing;
+  //gaitNumber = 4;
 
   current_gait = gaitNumber;
   gait->setIterations(iterationsBetweenMPC, iterationCounter);  //步态周期计算 Gait cycle calculation
@@ -502,13 +441,14 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
     // Using the estimated velocity is correct
     // Vec3<float> des_vel_world = seResult.rBody.transpose() * des_vel;
 
-    print_vector(_gait.x_td_out);
+   // print_vector(_gait.x_td_out);
     // ======================= Chiheb start ===========================
-    float pfx_rel2 = _gait.x_td_out[i] + //seResult.vWorld[0] * (.5 + 0.0) *
+    /*float pfx_rel = _gait.x_td_out[i] + //seResult.vWorld[0] * (.5 + 0.0) *
                         // stance_time +  //_parameters->cmpc_bonus_swing = 0.0
                     .03f * (seResult.vWorld[0] - v_des_world[0]) +
                     (0.5f * sqrt(seResult.position[2] / 9.81f)) *
                         (seResult.vWorld[1] * _yaw_turn_rate);
+    */
     // ======================= Chiheb end ===========================
 
     float pfx_rel = seResult.vWorld[0] * (.5 + 0.0) *
@@ -516,7 +456,9 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                     .03f * (seResult.vWorld[0] - v_des_world[0]) +
                     (0.5f * sqrt(seResult.position[2] / 9.81f)) *
                         (seResult.vWorld[1] * _yaw_turn_rate);
-    std::cout << pfx_rel2 << " " << pfx_rel << std::endl;
+    
+    //cout << "pfxrel" << endl;
+    //std::cout << pfx_rel2 << " " << pfx_rel << std::endl;
 
     float pfy_rel = seResult.vWorld[1] * .5 * stance_time * 1.0 + //dtMPC +
                     .03f * (seResult.vWorld[1] - v_des_world[1]) +
@@ -552,10 +494,29 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   // gait
   Vec4<float> contactStates = gait->getContactState();
   Vec4<float> swingStates = gait->getSwingState();
-  int* mpcTable = gait->getMpcTable();
+  int* mpcTable;
+  if(robotMode == 2) {
+
+    mpcTable = gait->getAdaptiveMpcTable();
+
+    //mpcTable = gait->getMpcTable();
+  }
+  else {
+    mpcTable = gait->getMpcTable();
+  }
+  printf("MPC table:\n");
+  for(int i = 0; i < gait->getGaitHorizon(); i++)
+  {
+    for(int j = 0; j < 4; j++)
+      {
+        printf("%d ", mpcTable[i*4 + j]);
+      }
+      printf("\n");
+  }
+  printf("\n");
   // ======================= Chiheb start ===========================
   //updateMPCIfNeeded(mpcTable, _stateEstimator, omniMode);
-  updateMPCIfNeeded(adaptive_mpc_table, _stateEstimator, omniMode);
+  updateMPCIfNeeded(mpcTable, _stateEstimator, omniMode);
   // ======================= Chiheb end ===========================
 
   //  StateEstimator* se = hw_i->state_estimator;
