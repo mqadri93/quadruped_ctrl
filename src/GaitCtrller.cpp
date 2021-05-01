@@ -1,7 +1,9 @@
 #include "GaitCtrller.h"
 
-
-GaitCtrller::GaitCtrller(double freq, double* PIDParam) {
+GaitCtrller::GaitCtrller(ros::NodeHandle& nh_, double freq, double* PIDParam)
+    : nh(nh_) {
+  // nh = nh_;
+  pub_pid = nh_.advertise<std_msgs::Float64MultiArray>("pub_pid", 1);
   for (int i = 0; i < 4; i++) {
     ctrlParam(i) = PIDParam[i];
   }
@@ -108,9 +110,10 @@ void GaitCtrller::SetRobotVel(double* vel) {
   if (abs(vel[2]) < 0.03) {
     _gamepadCommand[2] = 0.0;
   } else {
-  _gamepadCommand[2] = vel[2] * 1.0;
+    _gamepadCommand[2] = vel[2] * 1.0;
   }
-  // std::cout << "set vel to: " << _gamepadCommand[0] << " " << _gamepadCommand[1]
+  // std::cout << "set vel to: " << _gamepadCommand[0] << " " <<
+  // _gamepadCommand[1]
   //           << " " << _gamepadCommand[2] << std::endl;
 }
 
@@ -158,20 +161,20 @@ void GaitCtrller::ToqueCalculator(double* imuData, double* motorData,
   // Find the desired state trajectory
   _desiredStateCommand->convertToStateCommands(_gamepadCommand);
 
-  //safety check
-  if(!safetyChecker->checkSafeOrientation(*_stateEstimator)){
+  // safety check
+  if (!safetyChecker->checkSafeOrientation(*_stateEstimator)) {
     _safetyCheck = false;
     std::cout << "broken: Orientation Safety Ceck FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
+  } else if (!safetyChecker->checkPDesFoot(_quadruped, *_legController)) {
     _safetyCheck = false;
     std::cout << "broken: Foot Position Safety Ceck FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkForceFeedForward(*_legController)) {
+  } else if (!safetyChecker->checkForceFeedForward(*_legController)) {
     _safetyCheck = false;
     std::cout << "broken: Force FeedForward Safety Ceck FAIL" << std::endl;
 
-  }else if (!safetyChecker->checkJointLimit(*_legController)) {
+  } else if (!safetyChecker->checkJointLimit(*_legController)) {
     _safetyCheck = false;
     std::cout << "broken: Joint Limit Safety Ceck FAIL" << std::endl;
   }
@@ -182,20 +185,19 @@ void GaitCtrller::ToqueCalculator(double* imuData, double* motorData,
   _legController->updateCommand(&legcommand, ctrlParam);
 
   // effort.resize(12);
-  if(_safetyCheck){
+  if (_safetyCheck) {
     for (int i = 0; i < 4; i++) {
       effort[i * 3] = legcommand.tau_abad_ff[i];
       effort[i * 3 + 1] = legcommand.tau_hip_ff[i];
       effort[i * 3 + 2] = legcommand.tau_knee_ff[i];
     }
-  }else{
+  } else {
     for (int i = 0; i < 4; i++) {
       effort[i * 3] = 0.0;
       effort[i * 3 + 1] = 0.0;
       effort[i * 3 + 2] = 0.0;
     }
   }
-  
 
   // return effort;
 }
