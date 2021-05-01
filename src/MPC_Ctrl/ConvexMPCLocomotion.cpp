@@ -22,8 +22,8 @@
 // 10*30 =300ms
 ////////////////////
 
-ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
-    : iterationsBetweenMPC(_iterations_between_mpc),  //控制频率用  15
+ConvexMPCLocomotion::ConvexMPCLocomotion(ros::NodeHandle& nh, float _dt, int _iterations_between_mpc)
+    : nh(nh), iterationsBetweenMPC(_iterations_between_mpc),  //控制频率用  15
       horizonLength(14),
       dt(_dt),  // 0.002
       trotting(horizonLength, Vec4<int>(0, horizonLength/2.0, horizonLength/2.0, 0),
@@ -41,6 +41,7 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
       walking2(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(10, 10, 10, 10), "Walking2"),
       pacing(horizonLength, Vec4<int>(7, 0, 7, 0), Vec4<int>(7, 7, 7, 7), "Pacing"),
       aio(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(14, 14, 14, 14), "aio") {
+  pub_cx = nh.advertise<std_msgs::Float64MultiArray>("pub_cx", 1);
   dtMPC = dt * iterationsBetweenMPC;  // 0.03
   default_iterations_between_mpc = iterationsBetweenMPC;
   printf("[Convex MPC] dt: %.3f iterations: %d, dtMPC: %.3f\n", dt,

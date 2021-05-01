@@ -9,7 +9,7 @@ GaitCtrller::GaitCtrller(ros::NodeHandle& nh_, double freq, double* PIDParam)
   }
   _gamepadCommand.resize(4);
   FloatingBaseModel<float> _model;
-  convexMPC = new ConvexMPCLocomotion(1.0 / freq, 13);
+  convexMPC = new ConvexMPCLocomotion(nh, 1.0 / freq, 13);
 
   _quadruped = buildMiniCheetah<float>();
   _model = _quadruped.buildModel();

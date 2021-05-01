@@ -46,6 +46,7 @@ class GaitCtrller {
     //for (int k = 0; k < 4; k++) array.data.push_back(ctrlParam(k));
     for (int k = 0; k < 4; k++) array.data.push_back((k+1)*val);
     pub_pid.publish(array);
+    convexMPC->pubCvx(val);
   }
 
  private:
