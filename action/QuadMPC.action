@@ -1,0 +1,8 @@
+# goal
+int32 state
+---
+# result
+float64[] cmd
+---
+# feedback -- progress report
+int32[] progress

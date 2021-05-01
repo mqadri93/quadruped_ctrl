@@ -135,6 +135,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 message(STATUS ${PROJECT_SOURCE_DIR})
+
 include_directories(${catkin_INCLUDE_DIRS}
   include
   include/${PROJECT_NAME}
@@ -176,6 +177,11 @@ target_link_libraries(${PROJECT_NAME}
   CGAL::CGAL
 )
 
+## Declare a C++ executable
+add_executable(adaptiveGaitNode src/adaptiveGaitNode.cpp)
+target_link_libraries(adaptiveGaitNode ${catkin_LIBRARIES} ${PROJECT_NAME})
+add_dependencies(adaptiveGaitNode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 # add_executable(mainController src/mainController.cpp)
 # target_link_libraries(mainController ${catkin_LIBRARIES} ${PROJECT_NAME})
 # add_dependencies(mainController ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -215,7 +221,7 @@ target_link_libraries(${PROJECT_NAME}
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-   scripts/walking_simulation.py 
+   scripts/walking_simulation.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
