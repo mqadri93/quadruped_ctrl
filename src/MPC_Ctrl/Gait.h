@@ -26,14 +26,15 @@ public:
   virtual int getGaitHorizon() = 0;
   virtual void debugPrint() { }
   std::vector<bool>  leg_command_in = {1, 1, 1, 1};
-  std::vector<float> x_swingOnset = {0., 0., 0., 0.};
+  std::vector<float> x_swingOnset = {-0.1, -0.1, -0.1, -0.1};
   std::vector<float> touchdown_pos_world = {0., 0., 0., 0.};
-  float swingTimeRemaining_lookahead[4];
+  // float swingTimeRemaining_lookahead[4];
+  float swingTimeRemaining[4];
   int counter = 0;
   int h_mpc;
   float vb;
   float vx_des;
-  Vec4<float> swingTimes;
+  Vec4<float> swingTimes = {0.15, 0.15, 0.15, 0.15};
   float dt;
   std::vector<float> x_fh;
   Sw_St_Xtd_out _gait;

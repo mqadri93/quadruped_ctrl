@@ -41,7 +41,7 @@ ConvexMPCLocomotion::ConvexMPCLocomotion(float _dt, int _iterations_between_mpc)
       walking2(horizonLength, Vec4<int>(0, 7, 7, 0), Vec4<int>(10, 10, 10, 10), "Walking2"),
       pacing(horizonLength, Vec4<int>(7, 0, 7, 0), Vec4<int>(7, 7, 7, 7), "Pacing"),
       aio(horizonLength, Vec4<int>(0, 0, 0, 0), Vec4<int>(14, 14, 14, 14), "aio"),
-      adapt(4, Vec4<int>(0, 0, 0., 0), 
+      adapt(10, Vec4<int>(0, 0, 0., 0), 
       Vec4<int>(4, 4, 4, 4), "Adaptive") {
   dtMPC = dt * iterationsBetweenMPC;  // 0.03
   default_iterations_between_mpc = iterationsBetweenMPC;
@@ -255,6 +255,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
   } 
   else if(robotMode == 2) {
       gait = &adapt;
+      gaitNumber = 12;
       //gait->counter+=1;
       //cout << "counter value " << gait->counter << endl;
       for (int l = 0; l < 4; l++) {
@@ -279,10 +280,10 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
         // mark down the foot position at swing onset
         if(_gait.swing_state_flag[leg]) {
           gait->x_swingOnset[leg] = x_fh[leg];
-          gait->swingTimeRemaining_lookahead[leg] = swingTimes[leg];
+          gait->swingTimeRemaining[leg] = gait->swingTimes[leg];
         }
         if(_gait.leg_command[leg] == 0 && !_gait.swing_state_flag[leg]) {
-          gait->swingTimeRemaining_lookahead[leg] -= dt;
+          gait->swingTimeRemaining[leg] -= dt;
         }
 
         // transcribe touchdown position to world coodinates
@@ -298,7 +299,7 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
       gait->h_mpc = gait->getGaitHorizon();
       gait->vb = vb;
       gait->vx_des = vx_des;
-      gait->swingTimes=swingTimes;
+      // gait->swingTimes=swingTimes;
       gait->dt=dt;
       gait->x_fh = x_fh;
       gait->_gait = _gait;
@@ -423,8 +424,8 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
                                offset);  //得到身体坐标系下的hip关节坐标
 
     pRobotFrame[1] += interleave_y[i] * v_abs * interleave_gain;
-    float stance_time =
-        gait->getCurrentStanceTime(dtMPC, i);  // stance_time = 0.13
+    float stance_time = 0;
+        // gait->getCurrentStanceTime(dtMPC, i);  // stance_time = 0.13
 
     Vec3<float> pYawCorrected =
         coordinateRotation(CoordinateAxis::Z,
@@ -450,23 +451,22 @@ void ConvexMPCLocomotion::run(Quadruped<float>& _quadruped,
 
    // print_vector(_gait.x_td_out);
     // ======================= Chiheb start ===========================
-    /*float pfx_rel = _gait.x_td_out[i] + //seResult.vWorld[0] * (.5 + 0.0) *
-                        // stance_time +  //_parameters->cmpc_bonus_swing = 0.0
-                    .03f * (seResult.vWorld[0] - v_des_world[0]) +
-                    (0.5f * sqrt(seResult.position[2] / 9.81f)) *
-                        (seResult.vWorld[1] * _yaw_turn_rate);
-    */
-    // ======================= Chiheb end ===========================
-
     float pfx_rel = seResult.vWorld[0] * (.5 + 0.0) *
-                        stance_time +  //_parameters->cmpc_bonus_swing = 0.0
-                    .03f * (seResult.vWorld[0] - v_des_world[0]) +
-                    (0.5f * sqrt(seResult.position[2] / 9.81f)) *
-                        (seResult.vWorld[1] * _yaw_turn_rate);
+                          stance_time +  //_parameters->cmpc_bonus_swing = 0.0
+                      .03f * (seResult.vWorld[0] - v_des_world[0]) +
+                      (0.5f * sqrt(seResult.position[2] / 9.81f)) *
+                          (seResult.vWorld[1] * _yaw_turn_rate);
+    if(robotMode == 2) {
+      float pfx_rel = _gait.x_td_out[i] + //seResult.vWorld[0] * (.5 + 0.0) *
+                          // stance_time +  //_parameters->cmpc_bonus_swing = 0.0
+                      .03f * (seResult.vWorld[0] - v_des_world[0]) +
+                      (0.5f * sqrt(seResult.position[2] / 9.81f)) *
+                          (seResult.vWorld[1] * _yaw_turn_rate);
+    }
+    // ======================= Chiheb end ===========================
     
     //cout << "pfxrel" << endl;
     //std::cout << pfx_rel2 << " " << pfx_rel << std::endl;
-
     float pfy_rel = seResult.vWorld[1] * .5 * stance_time * 1.0 + //dtMPC +
                     .03f * (seResult.vWorld[1] - v_des_world[1]) +
                     (0.5f * sqrt(seResult.position[2] / 9.81f)) *

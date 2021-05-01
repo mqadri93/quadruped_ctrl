@@ -125,23 +125,19 @@ Vec4<float> MixedFrequncyGait::getContactState() {
 }
 
 Vec4<float> AdaptiveGait::getContactState() {
-  Array4f progress = _phase - _offsetsFloat;
+  Array4f contact_phase;
 
-  for(int i = 0; i < 4; i++)
+  for(int leg = 0; leg < 4; leg++)
   {
-    if(progress[i] < 0) progress[i] += 1.;
-    if(progress[i] > _durationsFloat[i])
-    {
-      progress[i] = 0.;
-    }
-    else
-    {
-      progress[i] = progress[i] / _durationsFloat[i];
+    if(_gait.leg_command[leg]) {
+      contact_phase[leg] = 0.5;
+    } else {
+      contact_phase[leg] = 0;
     }
   }
 
   //printf("contact state: %.3f %.3f %.3f %.3f\n", progress[0], progress[1], progress[2], progress[3]);
-  return progress.matrix();
+  return contact_phase.matrix();
 }
 
 
@@ -191,30 +187,20 @@ Vec4<float> MixedFrequncyGait::getSwingState() {
 
 Vec4<float> AdaptiveGait::getSwingState()
 {
-  Array4f swing_offset = _offsetsFloat + _durationsFloat;
-  for(int i = 0; i < 4; i++)
-    if(swing_offset[i] > 1) swing_offset[i] -= 1.;
-  Array4f swing_duration = 1. - _durationsFloat;
-
-  Array4f progress = _phase - swing_offset;
-
-  for(int i = 0; i < 4; i++)
+  Array4f swing_phase;
+  for(int leg = 0; leg < 4; leg++)
   {
-    if(progress[i] < 0) progress[i] += 1.f;
-    if(progress[i] > swing_duration[i])
-    {
-      progress[i] = 0.;
-    }
-    else
-    {
-      if(swing_duration[i] < 0.0000000001) {
-        progress[i] = 0.0;
-      } else {
-        progress[i] = progress[i] / swing_duration[i];
+    if(!_gait.leg_command[leg]) {
+      swing_phase[leg] = 1 - swingTimeRemaining[leg] / swingTimes[leg];
+      if(swing_phase[leg] < 0){
+        swing_phase[leg] = 0;
       }
+    } else {
+      swing_phase[leg] = 0;
     }
+
   }
-  return progress.matrix();
+  return swing_phase.matrix();
 }
 
 
@@ -269,6 +255,8 @@ int* MixedFrequncyGait::getMpcTable() {
 int* AdaptiveGait::getMpcTable()
 {
   int NUM_LEGS = 4;
+  // cout << "================== swing times ===============" << endl;
+  // cout << swingTimes[0] << endl;
   //float vx_des = gamepadCommand[0];
 
   for(int i=0; i<NUM_LEGS; i++){
@@ -281,6 +269,11 @@ int* AdaptiveGait::getMpcTable()
   //cout << "**************************" << endl;
   //cout << "leg command in MPC" << endl;
   //print_vector(_gait.leg_command);
+  float swingTimeRemaining_lookahead[4];
+  // swingTimeRemaining_lookahead = std::copy(swingTimeRemaining);
+  for(int i = 0; i < 4; i++) {
+    swingTimeRemaining_lookahead[i] = swingTimeRemaining[i];
+  }
   for(int iter = 1; iter < h_mpc; iter++) {
     leg_command_in = _gait_mpc.leg_command;
 
@@ -290,7 +283,7 @@ int* AdaptiveGait::getMpcTable()
       } else {
         x_fh[leg] = x_swingOnset[leg] + 
                     (_gait_mpc.x_td_out[leg]-x_swingOnset[leg])*swingTimeRemaining_lookahead[leg]/swingTimes[leg];
-        if(x_fh[leg] >= _gait_mpc.x_td_out[leg])
+        if(x_fh[leg] >= _gait_mpc.x_td_out[leg] - 0.01)
           leg_command_in[leg] = 1;
       }
     }
@@ -374,7 +367,8 @@ float MixedFrequncyGait::getCurrentSwingTime(float dtMPC, int leg) {
 float AdaptiveGait::getCurrentSwingTime(float dtMPC, int leg) {
   (void)leg;
   // return dtMPC * _swing;
-  return dtMPC * (_nIterations - _durations[leg]);
+  // return dtMPC * (_nIterations - _durations[leg]);
+  return this->swingTimes[leg];
 }
 
 
@@ -391,7 +385,12 @@ float MixedFrequncyGait::getCurrentStanceTime(float dtMPC, int leg) {
 float AdaptiveGait::getCurrentStanceTime(float dtMPC, int leg) {
   (void) leg;
   // return dtMPC * _stance;
-  return dtMPC * _durations[leg];
+  // return dtMPC * _durations[leg];
+  if(abs(vb) < 0.1) {
+    return 0;
+  } else {
+    return 0.2/vb;
+  }
 }
 
 int OffsetDurationGait::getGaitHorizon() {
