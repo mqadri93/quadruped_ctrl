@@ -3,7 +3,10 @@ project(quadruped_ctrl)
 set(CMAKE_BUILD_TYPE "Release")
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-#add_compile_options(-std=c++11)
+#add_compile_options(-std=c++14)
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -ggdb")
+set(CMAKE_CXX_FLAGS "-std=c++14  ${CMAKE_CXX_FLAGS} -L/usr/include -lzmq")
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake CACHE INTERNAL "" FORCE)
 
 set(CMAKE_BUILD_TYPE "Release")
 #set(BUILD_TYPE_RELEASE True)
@@ -20,6 +23,11 @@ include_directories(${LIBIGL_INCLUDE_DIRS})
 find_package( CGAL REQUIRED )
 include_directories(${CGAL_INCLUDE_DIRS})
 
+find_package(ZeroMQ)
+#include_directories(${ZeroMQ_INCLUDE_DIRS})
+
+#find_package( BULLET REQUIRED )
+#include_directories(${BULLET_INCLUDE_DIRS})
 
 #message("GMP ${GMP_INCLUDE_DIRS}")
 #set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${CGAL_LIBRARIES})
@@ -136,8 +144,11 @@ catkin_package(
 ## Your package locations should be listed before other locations
 message(STATUS ${PROJECT_SOURCE_DIR})
 
-include_directories(${catkin_INCLUDE_DIRS}
+include_directories(
   include
+  /usr/include
+  ${catkin_INCLUDE_DIRS}
+  ${ZeroMQ_INCLUDE_DIRS}
   include/${PROJECT_NAME}
   src
 )
@@ -175,12 +186,22 @@ target_link_libraries(${PROJECT_NAME}
   qpOASES
   osqp
   CGAL::CGAL
+  zmq
+  ${ZeroMQ_LIBRARIES}
 )
 
 ## Declare a C++ executable
 add_executable(adaptiveGaitNode src/adaptiveGaitNode.cpp)
-target_link_libraries(adaptiveGaitNode ${catkin_LIBRARIES} ${PROJECT_NAME})
-add_dependencies(adaptiveGaitNode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(adaptiveGaitNode
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  ${ZeroMQ_LIBRARIES}
+)
+
+add_dependencies(adaptiveGaitNode
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
 
 # add_executable(mainController src/mainController.cpp)
 # target_link_libraries(mainController ${catkin_LIBRARIES} ${PROJECT_NAME})

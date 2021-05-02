@@ -1,12 +1,13 @@
 #ifndef _CONVEXMPCLOCOMOTION_H
 #define _CONVEXMPCLOCOMOTION_H
 
-#include <ros/ros.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Float64MultiArray.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/String.h>
-#include <sys/time.h>
+#include <zmq.hpp>
+//#include <ros/ros.h>
+//#include <std_msgs/Float32.h>
+//#include <std_msgs/Float64MultiArray.h>
+//#include <std_msgs/Int32.h>
+//#include <std_msgs/String.h>
+//#include <sys/time.h>
 
 #include <cstdio>
 #include <fstream>
@@ -91,8 +92,9 @@ class ConvexMPCLocomotion {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  ConvexMPCLocomotion(ros::NodeHandle &nh, float _dt,
-                      int _iterations_between_mpc);
+  // ConvexMPCLocomotion(ros::NodeHandle &nh, float _dt,
+  // int _iterations_between_mpc);
+  ConvexMPCLocomotion(float _dt, int _iterations_between_mpc);
   void initialize();
 
   template <typename T>
@@ -101,13 +103,14 @@ class ConvexMPCLocomotion {
            DesiredStateCommand<T> &_desiredStateCommand,
            std::vector<double> gamepadCommand, int gaitType, int robotMode = 0);
   // void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator,
+  /*
   void pubCvx(int val) {
     std_msgs::Float64MultiArray array;
     array.data.clear();
     //for (int k = 0; k < 4; k++) array.data.push_back(ctrlParam(k));
     for (int k = 0; k < 4; k++) array.data.push_back((k+1)*100*val);
     pub_cx.publish(array);
-  }
+  } */
 
   // std::vector<double> gamepadCommand);
   bool currently_jumping = false;
@@ -127,12 +130,27 @@ class ConvexMPCLocomotion {
 
   Vec4<float> contact_state;
 
+  template <typename T>
+  void zmq_sender(std::vector<T> data) {
+    std::stringstream ss;
+    for (auto val : data) ss << val << " ";
+    ss << '\n';
+    std::string msg_str = ss.str();
+    // pub_sock.send(zmq::buffer(msg),zmq::send_flags::dontwait);
+    zmq::message_t message(msg_str.length());
+    memcpy(message.data(), msg_str.c_str(), msg_str.length());
+    pub_sock.send(message);
+  }
+
  private:
+  const std::string addr = "tcp://127.0.0.1:1234";
+  zmq::context_t context_;
+  zmq::socket_t pub_sock;
   void _SetupCommand(StateEstimatorContainer<float> &_stateEstimator,
                      std::vector<double> gamepadCommand);
 
-  ros::NodeHandle nh;
-  ros::Publisher pub_cx;
+  // ros::NodeHandle nh;
+  // ros::Publisher pub_cx;
 
   float _yaw_turn_rate = 0.;
   float _yaw_des;

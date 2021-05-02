@@ -1,15 +1,13 @@
 #include "GaitCtrller.h"
 
-GaitCtrller::GaitCtrller(ros::NodeHandle& nh_, double freq, double* PIDParam)
-    : nh(nh_) {
+GaitCtrller::GaitCtrller(double freq, double* PIDParam) {
   // nh = nh_;
-  pub_pid = nh_.advertise<std_msgs::Float64MultiArray>("pub_pid", 1);
   for (int i = 0; i < 4; i++) {
     ctrlParam(i) = PIDParam[i];
   }
   _gamepadCommand.resize(4);
   FloatingBaseModel<float> _model;
-  convexMPC = new ConvexMPCLocomotion(nh, 1.0 / freq, 13);
+  convexMPC = new ConvexMPCLocomotion(1.0 / freq, 13);
 
   _quadruped = buildMiniCheetah<float>();
   _model = _quadruped.buildModel();

@@ -192,8 +192,7 @@ def reset_robot():
     p.resetBaseVelocity(boxId, [0, 0, 0], [0, 0, 0])
     for j in range(12):
         p.resetJointState(boxId, motor_id_list[j], init_new_pos[j], init_new_pos[j+12])
-    cpp_gait_ctrller.init_controller(convert_type(
-        freq), convert_type([stand_kp, stand_kd, joint_kp, joint_kd]))
+    cpp_gait_ctrller.init_controller(convert_type(freq), convert_type(freq), convert_type([stand_kp, stand_kd, joint_kp, joint_kd]))
 
     for _ in range(10):
         p.stepSimulation()

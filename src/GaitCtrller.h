@@ -2,12 +2,13 @@
 #define GAIT_CTRLLER_H
 
 #include <math.h>
-#include <ros/ros.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Float64MultiArray.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/String.h>
-#include <time.h>
+#include <zmq.hpp>
+//#include <ros/ros.h>
+//#include <std_msgs/Float32.h>
+//#include <std_msgs/Float64MultiArray.h>
+//#include <std_msgs/Int32.h>
+//#include <std_msgs/String.h>
+//#include <time.h>
 
 #include <iostream>
 #include <string>
@@ -31,7 +32,7 @@ struct JointEff {
 
 class GaitCtrller {
  public:
-  GaitCtrller(ros::NodeHandle& nh, double freq, double* PIDParam);
+  GaitCtrller(double freq, double* PIDParam);
   ~GaitCtrller();
   void SetIMUData(double* imuData);
   void SetLegData(double* motorData);
@@ -40,14 +41,16 @@ class GaitCtrller {
   void SetRobotMode(int mode);
   void SetRobotVel(double* vel);
   void ToqueCalculator(double* imuData, double* motorData, double* effort);
+  /*
   void pubDemo(int val) {
     std_msgs::Float64MultiArray array;
     array.data.clear();
-    //for (int k = 0; k < 4; k++) array.data.push_back(ctrlParam(k));
-    for (int k = 0; k < 4; k++) array.data.push_back((k+1)*val);
+    // for (int k = 0; k < 4; k++) array.data.push_back(ctrlParam(k));
+    for (int k = 0; k < 4; k++) array.data.push_back((k + 1) * val);
     pub_pid.publish(array);
     convexMPC->pubCvx(val);
   }
+  */
 
  private:
   int _gaitType = 0;
@@ -56,8 +59,8 @@ class GaitCtrller {
   std::vector<double> _gamepadCommand;
   Vec4<float> ctrlParam;
 
-  ros::NodeHandle nh;
-  ros::Publisher pub_pid;
+  //ros::NodeHandle nh;
+  //ros::Publisher pub_pid;
 
   Quadruped<float> _quadruped;
   ConvexMPCLocomotion* convexMPC;
@@ -80,11 +83,20 @@ GaitCtrller* gCtrller = NULL;
 JointEff jointEff;
 
 // first step, init the controller
+/*
 void init_controller(ros::NodeHandle& nh_, double freq, double PIDParam[]) {
   if (NULL != gCtrller) {
     delete gCtrller;
   }
   gCtrller = new GaitCtrller(nh_, freq, PIDParam);
+}
+*/
+
+void init_controller(double freq, double PIDParam[]) {
+  if (NULL != gCtrller) {
+    delete gCtrller;
+  }
+  gCtrller = new GaitCtrller(freq, PIDParam);
 }
 
 // the kalman filter need to work second

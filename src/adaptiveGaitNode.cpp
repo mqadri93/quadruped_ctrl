@@ -2,6 +2,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
+#include <zmq.hpp>
 
 #include <sstream>
 
@@ -25,11 +26,10 @@ int main(int argc, char** argv) {
   ros::param::get("/simulation/joint_kd", joint_kd);
 
   double pid_coefficients[] = {stand_kp, stand_kd, joint_kp, joint_kd};
-  auto cpp_gait_ctrller = GaitCtrller(nh, freq, pid_coefficients);
+  auto cpp_gait_ctrller = GaitCtrller(freq, pid_coefficients);
 
   while (ros::ok()) {
     std_msgs::String msg;
-    cpp_gait_ctrller.pubDemo(count);
 
     std::stringstream ss;
     ss << "hello world " << count;
