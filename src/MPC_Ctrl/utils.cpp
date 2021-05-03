@@ -88,7 +88,7 @@ bool x_marg_safety_cond_f(double x, double wkspace_margin, vector<float> nodes) 
 }
 
 bool x_marg_safety_cond_b(double x, double wkspace_margin, vector<float> nodes) {
-      if (x >= nodes[-1] + wkspace_margin) {
+      if (x >= nodes.back() + wkspace_margin) {
             return true;
       }
       return false;

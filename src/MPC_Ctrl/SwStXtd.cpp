@@ -439,7 +439,7 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 					if(leg_state[neighour] == 0) {
 						if(x_marg_safety_cond || (lesion_legs[i] && lesion)) {
 							if(x_marg_safety_cond){
-								leg_state[neighour-1] = 1;
+								leg_state[neighour] = 1;
 								leg_state[i] = 0;
 								swing_transition_flag[i] = 1;
 								t_liftoff[i] = t;
@@ -449,13 +449,14 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 								waiting_time[i] = waiting_time[i] + 1;
 								if(waiting_time[i] >= 5) {
 									waiting_time[i] =0;
-									leg_state[neighour-1] = 0;
+									leg_state[neighour] = 0;
+									leg_state[i] = 1;
 									swing_transition_flag[i] = 1;
 									t_liftoff[i] = t;
 									x_fh_at_liftoff[i] = x_fh[i];
 								}
 								else {
-									leg_state[neighour-1] = 1;
+									leg_state[neighour] = 1;
 									leg_state[i] = 1;
 								}
 							}
