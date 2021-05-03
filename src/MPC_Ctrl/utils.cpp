@@ -46,10 +46,11 @@ getpFIS_at_x_from_pFIS_stack_out getpFIS_at_x_from_pFIS_stack(std::map<std::stri
       for(size_t i=0; i< nodes.size(); i++) {
             if(x - nodes[i] <= 0) {
                   index=i;
+                  break;
             }         
       }
-      output.pFIS = get<0>(pFIS_nodes["backward"][N-index-1]);
-      output.volume = get<1>(pFIS_nodes["backward"][N-index-1]);          
+      output.pFIS = get<0>(pFIS_nodes["backward"][index]);
+      output.volume = get<1>(pFIS_nodes["backward"][index]);          
     }
     return output;
 }

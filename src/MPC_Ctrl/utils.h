@@ -86,8 +86,9 @@ bool any(vector<T> v, T val) {
 }
 
 template <typename T>
-bool all(vector<T> v, T val) {
+bool all(vector<T> v, T val, vector<int> indices) {
       for(int i =0; i< v.size(); i++) {
+            if(std::find(indices.begin(), indices.end(), i) == indices.end()) continue;
             if(v[i] != val) {
                return false;
             }

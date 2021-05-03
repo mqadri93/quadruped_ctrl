@@ -52,7 +52,7 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data,
     // Tests
     //lesion_leg_xswing[0] = lesion_leg_xswing[0]*2;
     //lesion_legs[0] = true;
-	/*cout << "******************************************" << endl;
+	cout << "******************************************" << endl;
 	cout << "leg command in " << endl;
  	print_vector(leg_command_in);
 	cout << "ecat data" << endl;
@@ -61,7 +61,7 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data,
 	cout << vb << endl;
 	cout << "vx_des" << endl;
 	cout << vx_des << endl;
-	*/
+	
 
     Sw_St_Xtd_out _gait = Sw_St_Xtd(pFIS_stack,
                                     FFS_stack,
@@ -83,13 +83,13 @@ Sw_St_Xtd_out generate_data(vector<float> ecat_data,
                                     lesion_legs,
                                     lesion_leg_xtd,
                                     lesion_leg_xswing);
-    
-    //cout << "=====leg_command=====" << endl;
-    //print_vector(_gait.leg_command);
-    //cout << "=====swing_state_flag=====" << endl;
-    //print_vector(_gait.swing_state_flag);
-    //cout << "=====x_td_out=====" << endl;
-    //print_vector(_gait.x_td_out);
+
+    cout << "=====leg_command=====" << endl;
+    print_vector(_gait.leg_command);
+    cout << "=====swing_state_flag=====" << endl;
+    print_vector(_gait.swing_state_flag);
+    cout << "=====x_td_out=====" << endl;
+    print_vector(_gait.x_td_out);
 
     return _gait;
 }
@@ -415,20 +415,20 @@ Sw_St_Xtd_out Sw_St_Xtd(std::map<std::string, FIA> pFIS_stack,
 	
 		if(cond_to_swing[i] && leg_state[i]){
 			if(marginalUtility[i] <= marginalUtility_threshold || x_marg_safety_cond || lesion_legs[i]){
-				if(i == 1 || i == 4) {
-					neighborLegs.push_back(2);
-					neighborLegs.push_back(3);
-				}
-				else if(i==2 || i==3) {
+				if(i == 0 || i == 3) {
 					neighborLegs.push_back(1);
-					neighborLegs.push_back(4);					
+					neighborLegs.push_back(2);
+				}
+				else if(i==1 || i==2) {
+					neighborLegs.push_back(0);
+					neighborLegs.push_back(3);					
 				}
 				else {
-					neighborLegs.push_back(1);
-					neighborLegs.push_back(4);	
+					neighborLegs.push_back(0);
+					neighborLegs.push_back(3);	
 				}
 			}
-			if(all(leg_state, true)) {
+			if(all(leg_state, true, neighborLegs)) {
 				leg_state[i]=0;
 				swing_transition_flag[i] = 1;
 				t_liftoff[i] = t;
